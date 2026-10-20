@@ -33,7 +33,7 @@ import {
 } from "@dylanebert/shallot";
 import { LocalPlayer, Player, PlayerPlugin } from "./player";
 import { GunPlugin } from "./gun";
-import { Grit, Wood, Stone, SurfacePlugins, GritPaint, WoodPaint, StonePaint, timberMesh, linearHex } from "./materials";
+import { Grit, Wood, Stone, SurfacePlugins, GritPaint, WoodPaint, StonePaint, linearHex } from "./materials";
 import { GameAudioPlugin } from "./audio";
 import { AtmospherePlugin } from "./atmosphere";
 import { Vignette, VignettePlugin } from "@dylanebert/shallot/extras";
@@ -46,8 +46,8 @@ export function box(world: World, at: V3, half: V3, mass = 0, rotation: Q = [0, 
     world.add(eid, Transform, { translation: at, scale: size, rotation });
     world.add(eid, Body, { type: mass ? BodyType.Dynamic : BodyType.Static });
     world.add(eid, Shape, { density: mass ? mass / (size[0] * size[1] * size[2]) : 1000, enableHitEvents: mass ? 1 : 0 });
-    world.add(eid, MeshInstance, wood ? { mesh: timberMesh(world, size) } : {});
-    world.add(eid, MeshMaterial, wood ? world.resource(Wood).add(WoodPaint) : world.resource(Grit).add(GritPaint));
+    world.add(eid, MeshInstance);
+    world.add(eid, MeshMaterial, wood ? world.resource(Wood).add({ baseColor: WoodPaint.baseColor, size }) : world.resource(Grit).add(GritPaint));
     return eid;
 }
 export function pin(

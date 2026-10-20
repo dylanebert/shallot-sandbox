@@ -1,5 +1,5 @@
 import { expect, setDefaultTimeout, test } from "bun:test";
-import { PointLight, Transform, pressKey, releaseKey } from "@dylanebert/shallot";
+import { MeshInstance, MeshMaterial, PointLight, Transform, pressKey, releaseKey } from "@dylanebert/shallot";
 import { attachTexture, captureTexture } from "@dylanebert/shallot/rendering";
 import { PhysicsWorldDefinition } from "@dylanebert/shallot/standard/physics";
 import { TIMEOUT } from "@dylanebert/shallot/testing";
@@ -7,6 +7,7 @@ import { openGpuApp } from "@dylanebert/shallot/testing/gpu";
 import { setupGlobals } from "@dylanebert/shallot/webgpu";
 import { Player } from "./player";
 import { SandboxPlugin, SandboxState } from "./sandbox";
+import { Wood } from "./materials";
 setDefaultTimeout(TIMEOUT.node);
 await setupGlobals();
 
@@ -18,6 +19,14 @@ test("the hall's lamps light surfaces, cast shadows, and brighten air around the
     console.info("frame adapter:", w.gpuIfAvailable!.adapter);
     try {
         const e = w.resource(SandboxState).entities!;
+        const timbers = [...e.pyramid, ...e.planks, ...e.stack, ...e.chains.flatMap(chain => chain.links)];
+        const cube = w.storage(MeshInstance).mesh.get(timbers[0]);
+        for (const eid of timbers) {
+            expect(w.storage(MeshInstance).mesh.get(eid)).toBe(cube);
+            const params = w.resource(Wood).get(w.storage(MeshMaterial).material.get(eid))!;
+            const scale = w.storage(Transform).scale;
+            expect([params.size.x, params.size.y, params.size.z]).toEqual([scale.x.get(eid), scale.y.get(eid), scale.z.get(eid)]);
+        }
         w.remove(e.player, Player);
         w.storage(Transform).translation.set(e.eye, 0, 1.6, -8);
         attachTexture(w, e.eye, { width: 640, height: 360 });

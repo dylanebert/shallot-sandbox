@@ -1,10 +1,8 @@
-import { Meshes, type Resource, type World } from "@dylanebert/shallot";
-import { MaterialPlugin, extendedMaterial, Materials, applyPbrLighting, pbrInputFromStandardMaterial, StandardMaterial } from "@dylanebert/shallot/standard/rendering";
+import { MaterialPlugin, extendedMaterial, materialType, Materials, applyPbrLighting, pbrInputFromMaterial, pbrInputFromStandardMaterial, StandardMaterial } from "@dylanebert/shallot/standard/rendering";
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import * as std from "typegpu/std";
 import { posterizeLightness, POSTERIZATION_LEVELS } from "./posterize";
-import { timberGeometry } from "./timber";
 
 export function linearHex(hex: number): [number, number, number, number] {
     const linear = (v: number) => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
@@ -29,8 +27,8 @@ const noise = tgpu.fn([d.vec3f], d.f32)((p) => {
         std.mix(std.mix(hash(std.add(i,d.vec3f(0,0,1))),hash(std.add(i,d.vec3f(1,0,1))),u.x),std.mix(hash(std.add(i,d.vec3f(0,1,1))),hash(std.add(i,d.vec3f(1,1,1))),u.x),u.y), u.z);
 });
 
-// Standard-derived surfaces keep PBR/depth/shadow bindings. Like scream-jam, quantization is
-// after applyPbrLighting and before the renderer applies fog; atmosphere is never quantized.
+// Like scream-jam, quantization is after applyPbrLighting and before the renderer
+// applies fog; atmosphere is never quantized.
 export const Grit = extendedMaterial(Materials, {
     name: "Grit",
     fragment: ctx => {
@@ -46,18 +44,37 @@ export const Grit = extendedMaterial(Materials, {
         return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS), color.a);
     },
 });
-export const Wood = extendedMaterial(Materials, {
+const WoodParameters = d.struct({ baseColor: d.vec4f, size: d.vec3f });
+export const Wood = materialType({
     name: "Wood",
+    parameters: WoodParameters,
+    defaults: { baseColor: WoodPaint.baseColor, size: d.vec3f(1) },
+    fragmentInputs: { localPos: true },
+    depthPass: { prepass: true, shadows: true },
     fragment: ctx => {
         "use gpu";
-        // Each face is a near-flat wood patch, with y following its long axis.
-        const grain = std.sin(ctx.uv.x * 6 + std.sin(ctx.uv.y * 1.5) * .1);
-        const edge = std.min(std.min(ctx.uv.x, 1 - ctx.uv.x), std.min(ctx.uv.y, 1 - ctx.uv.y));
-        // A narrow dark edge keeps separate timbers legible when their physical
-        // .01 m gaps fall between nearest-sampled pixels at 360 lines.
+        // Metre-space grain stays attached to a tumbling timber. Size is authored
+        // per material through the public parameter schema, not a renderer buffer.
+        const size = ctx.parameters.size;
+        const p = std.mul(ctx.localPos, size);
+        let axial = p.x;
+        let radial = d.vec2f(p.y, p.z);
+        if (size.y > size.x && size.y >= size.z) {
+            axial = p.y;
+            radial = d.vec2f(p.z, p.x);
+        } else if (size.z > size.x && size.z > size.y) {
+            axial = p.z;
+            radial = d.vec2f(p.x, p.y);
+        }
+        const grain = std.sin(std.length(std.sub(radial, d.vec2f(3, 8))) * 6 + std.sin(axial * 1.5) * .1);
+        // On a unit cube, one border distance is zero on the face. The median
+        // selects distance to that face's edge without depending on face UVs.
+        const border = std.sub(d.vec3f(.5), std.abs(ctx.localPos));
+        const edge = std.min(std.max(border.x, border.y), std.min(std.max(border.y, border.z), std.max(border.z, border.x)));
         const seam = .55 + .45 * std.smoothstep(0, .035, edge);
-        const surface = pbrInputFromStandardMaterial(ctx);
-        surface.baseColor = d.vec4f(std.mul(surface.baseColor.rgb, seam * (.98 + grain * .002)), surface.baseColor.a);
+        const surface = pbrInputFromMaterial(ctx);
+        surface.perceptualRoughness = 1;
+        surface.baseColor = d.vec4f(std.mul(ctx.parameters.baseColor.rgb, seam * (.98 + grain * .002)), ctx.parameters.baseColor.a);
         const color = applyPbrLighting(surface);
         return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS), color.a);
     },
@@ -74,16 +91,3 @@ export const Stone = extendedMaterial(Materials, {
     },
 });
 export const SurfacePlugins = [MaterialPlugin(Grit), MaterialPlugin(Wood), MaterialPlugin(Stone)];
-
-const TimberMeshes: Resource<Map<string, number>> = { create: () => new Map() };
-/** Authored face UVs keep the standard-derived shader independent of renderer transform bindings. */
-export function timberMesh(world: World, size: readonly number[]): number {
-    const cache = world.resource(TimberMeshes);
-    const key = size.join(",");
-    const existing = cache.get(key);
-    if (existing !== undefined) return existing;
-    const mesh = timberGeometry(size);
-    const id = world.resource(Meshes).add({ name: `timber-${key}`, ...mesh });
-    cache.set(key, id);
-    return id;
-}
