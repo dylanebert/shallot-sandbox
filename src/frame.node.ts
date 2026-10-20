@@ -52,9 +52,13 @@ test("the hall's lamps light surfaces, cast shadows, and brighten air around the
         expect(shadowPixels).toBeGreaterThan(100);
         for (const light of lights) w.storage(PointLight).intensity.set(light, 0);
         const ambientOnly = await read();
-        const litFloor = mean(unshadowed, 240, 305, 400, 350);
-        const ambientFloor = mean(ambientOnly, 240, 305, 400, 350);
-        console.info({ shadowPixels, litFloor, ambientFloor });
-        expect(litFloor).toBeGreaterThan(ambientFloor + 25);
+        // The reference floor is deliberately much darker than our old uniform .115
+        // albedo. Hold a visible wall pool instead, at the restored .04 wall albedo.
+        // The claim is now relative contrast (>=25%), not an absolute floor code
+        // difference that ten-band quantization and the darker palette invalidate.
+        const litWall = mean(unshadowed, 60, 100, 180, 250);
+        const ambientWall = mean(ambientOnly, 60, 100, 180, 250);
+        console.info({ shadowPixels, litWall, ambientWall });
+        expect(litWall).toBeGreaterThan(ambientWall * 1.25);
     } finally { app.dispose(); }
 });

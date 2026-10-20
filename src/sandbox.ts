@@ -7,6 +7,7 @@ import {
     Listener,
     Resolution,
     Tonemapping,
+    TonemappingMethod,
     VolumetricLight,
     Character,
     CharacterPlugin,
@@ -32,21 +33,21 @@ import {
 } from "@dylanebert/shallot";
 import { LocalPlayer, Player, PlayerPlugin } from "./player";
 import { GunPlugin } from "./gun";
-import { Grit, Wood, Stone, SurfacePlugins } from "./materials";
+import { Grit, Wood, Stone, SurfacePlugins, GritPaint, WoodPaint, StonePaint, timberMesh, linearHex } from "./materials";
 import { GameAudioPlugin } from "./audio";
 import { AtmospherePlugin } from "./atmosphere";
 import { Vignette, VignettePlugin } from "@dylanebert/shallot/extras";
 
 type V3 = readonly [number, number, number];
 type Q = readonly [number, number, number, number];
-export function box(world: World, at: V3, half: V3, mass = 0, rotation: Q = [0, 0, 0, 1]): number {
+export function box(world: World, at: V3, half: V3, mass = 0, rotation: Q = [0, 0, 0, 1], wood = mass > 0): number {
     const eid = world.create();
     const size = half.map((v) => 2 * v) as [number, number, number];
     world.add(eid, Transform, { translation: at, scale: size, rotation });
     world.add(eid, Body, { type: mass ? BodyType.Dynamic : BodyType.Static });
     world.add(eid, Shape, { density: mass ? mass / (size[0] * size[1] * size[2]) : 1000, enableHitEvents: mass ? 1 : 0 });
-    world.add(eid, MeshInstance);
-    world.add(eid, MeshMaterial, mass ? world.resource(Wood).add({ ...Wood.defaults!, size }) : world.resource(Grit).add(Grit.defaults!));
+    world.add(eid, MeshInstance, wood ? { mesh: timberMesh(world, size) } : {});
+    world.add(eid, MeshMaterial, wood ? world.resource(Wood).add(WoodPaint) : world.resource(Grit).add(GritPaint));
     return eid;
 }
 export function pin(
@@ -68,6 +69,7 @@ export function chain(world: World, x: number, weighted: boolean) {
     let previous = mount;
     for (let i = 0; i < 18; i++) {
         const link = box(world, [x, 4.9 - 0.21 * (i + 0.5), -15], [0.05, 0.085, 0.05], 0.5);
+        world.resource(Wood).update(world.storage(MeshMaterial).material.get(link), { baseColor: linearHex(0x6a5a45) });
         pin(world, previous, link, [0, i ? -0.105 : 0, 0], [0, 0.105, 0]);
         links.push(link);
         previous = link;
@@ -88,7 +90,7 @@ export function chain(world: World, x: number, weighted: boolean) {
         world.add(weight, MeshInstance, {
             mesh: world.resource(Meshes).add({ name: "weight", ...sphere() }),
         });
-        world.add(weight, MeshMaterial, world.resource(Stone).add(Stone.defaults!));
+        world.add(weight, MeshMaterial, world.resource(Stone).add(StonePaint));
         pin(world, previous, weight, [0, -0.105, 0], [0, 0.4, 0]);
     }
     return { mount, links, weight };
@@ -125,9 +127,12 @@ export function bridge(world: World): number[] {
                 [0.75, 0.1, pitch / 2 - 0.075],
                 i === 0 || i === 9 ? 0 : 8,
                 [Math.sin(angle / 2), 0, 0, Math.cos(angle / 2)],
+                true,
             ),
         );
     }
+    for (const [i, plank] of planks.entries())
+        world.resource(Wood).update(world.storage(MeshMaterial).material.get(plank), { baseColor: linearHex(i === 0 || i === 9 ? 0x332a1d : 0x4d4030) });
     for (let i = 0; i < 9; i++)
         for (const x of [-0.6, 0.6])
             pin(world, planks[i], planks[i + 1], [x, 0, pitch / 2], [x, 0, -pitch / 2]);
@@ -149,10 +154,13 @@ function lamp(world: World, z: number): number {
     world.add(eid, VolumetricLight);
     world.add(eid, PointLight, {
         color: 0xffd9a8,
-        // Lumens, not the archive renderer's unitless intensity; the dark albedo needs this
-        // at the standard camera exposure. Ambient remains a small fill beside the pools.
-        intensity: 1200000,
+        // At EV100 9.7, an unwrapped 78 maps to ~3.07M lm (4π² / exposure).
+        // Use half that direct term: the warm ambient below replaces the old
+        // wrapped diffuse fill rather than overdriving a physically small emitter.
+        intensity: 1500000,
         range: 24,
+        // A modern spherical source uses the visible bulb's radius. The archive's
+        // 4 m clamp was a nonphysical soft-area approximation, not a 4 m bulb.
         radius: 0.15,
         shadowMapsEnabled: 1,
     });
@@ -225,7 +233,11 @@ export function sandbox(world: World) {
             [1.5, 0.75, 0.5],
         ],
     ] as const satisfies readonly (readonly [V3, V3])[];
-    for (const [at, half] of architecture) box(world, at, half);
+    for (const [index, [at, half]] of architecture.entries()) {
+        const eid = box(world, at, half);
+        const hex = index === 1 || index === 11 ? 0x4c4b49 : index === 14 ? 0x1e1d1b : [0, 12, 13, 15].includes(index) ? 0x2b2928 : 0x393836;
+        world.resource(Grit).update(world.storage(MeshMaterial).material.get(eid), { baseColor: linearHex(hex) });
+    }
     const pyramid: number[] = [];
     for (let row = 0; row < 10; row++)
         for (let i = 0; i < 10 - row; i++)
@@ -237,18 +249,21 @@ export function sandbox(world: World) {
     const stack = Array.from({ length: 5 }, (_, i) =>
         box(world, [0, 0.22 + i * 0.42, -15], [0.35, 0.2, 0.2], 2),
     );
-    world.resource(GlobalAmbientLight).brightness = 180;
+    // .8 unexposed archive fill -> ~800 cd/m² at EV100 9.7. A modest warm
+    // extra fill replaces some of its wrapped diffuse (modern Lambert uses max(N·L,0)).
+    world.resource(GlobalAmbientLight).brightness = 1300;
+    world.resource(GlobalAmbientLight).color = 0xfff0da;
     for (const z of [0, -14.5]) lamp(world, z);
     const eye = world.create();
     world.add(eye, Camera, { fov: 75, near: 0.05, far: 100, antialias: 0 });
     world.add(eye, Resolution, { height: 360 });
     world.add(eye, Listener);
-    world.add(eye, Tonemapping);
-    world.add(eye, DebandDither);
+    world.add(eye, Tonemapping, { method: TonemappingMethod.KhronosPbrNeutral });
+    world.add(eye, DebandDither, { enabled: 0 });
     world.add(eye, ColorGrading, {
-        postSaturation: 0.92,
-        contrast: [1.04, 1.02, 1],
-        exposure: 0.25,
+        temperature: 0.012, postSaturation: 0.92,
+        gamma: [1 / 1.12, 1 / 1.12, 1 / 1.12],
+        lift: [-0.01, -0.01, -0.01],
     });
     world.add(eye, Vignette, { intensity: 0.15 });
     world.add(eye, StandardRenderer);

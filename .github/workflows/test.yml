@@ -65,6 +65,14 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           node -e "import('webgpu').then(({ create, globals }) => { Object.assign(globalThis, globals); return create([]).requestAdapter(); }).then((adapter) => { if (!adapter) throw new Error('WARP adapter unavailable'); const info = adapter.info; const identity = [info.vendor, info.architecture, info.device, info.description].join(' '); if (!/warp|basic render/i.test(identity)) throw new Error('Expected WARP, got ' + identity); console.info('WARP adapter:', identity); })"
+      - name: gpu tier
+        if: matrix.os != 'windows-latest'
+        run: |
+          bun test $(find ./src ./tests -name '*.gpu.test.ts' -print | sort)
+      - name: gpu tier on WARP
+        if: matrix.os == 'windows-latest'
+        run: |
+          node -e "const child = Bun.spawn([process.execPath, 'test', ...process.argv.slice(1)], { argv0: 'bun.exe', env: { ...process.env, PATH: process.env.SHALLOT_REAL_NODE_DIR + ';' + process.env.PATH }, stdin: 'inherit', stdout: 'inherit', stderr: 'inherit' }); child.exited.then((code) => process.exit(code));" -- $(find ./src ./tests -name '*.gpu.test.ts' -print | sort)
       - name: node tier
         if: matrix.os != 'windows-latest'
         run: bun test $(find ./src ./tests -name '*.node.ts' -print | sort)
