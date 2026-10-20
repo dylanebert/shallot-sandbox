@@ -3,6 +3,7 @@ import * as d from "typegpu/data";
 import * as std from "typegpu/std";
 
 const SurfaceParameters = d.struct({ color: d.vec3f });
+const WoodParameters = d.struct({ color: d.vec3f, size: d.vec3f });
 
 // Like examples/materials: lit fragment materials retain the standard light/shadow path.
 export const Grit = materialType({
@@ -19,15 +20,27 @@ export const Grit = materialType({
 });
 export const Wood = materialType({
     name: "Wood",
-    parameters: SurfaceParameters,
-    defaults: { color: d.vec3f(0.15, 0.112, 0.071) },
+    parameters: WoodParameters,
+    defaults: { color: d.vec3f(0.15, 0.112, 0.071), size: d.vec3f(1) },
     fragmentInputs: { localPos: true },
     fragment: (ctx) => {
         "use gpu";
-        const p = ctx.localPos;
-        const grain = std.sin(p.y * 80 + std.sin(p.x * 9 + p.z * 6) * 3);
-        const fiber = std.sin(p.z * 230 + p.y * 40);
-        return d.vec4f(lit(std.mul(ctx.parameters.color, 0.82 + grain * 0.12 + fiber * 0.045), ctx.worldNormal), 1);
+        const size = ctx.parameters.size;
+        const p = std.mul(ctx.localPos, size);
+        let axial = p.x;
+        let radial = d.vec2f(p.y, p.z);
+        if (size.y > size.x && size.y >= size.z) {
+            axial = p.y;
+            radial = d.vec2f(p.z, p.x);
+        } else if (size.z > size.x && size.z > size.y) {
+            axial = p.z;
+            radial = d.vec2f(p.x, p.y);
+        }
+        // A distant pith gives nearly parallel rings, with only slow axial wander.
+        const radius = std.length(std.sub(radial, d.vec2f(3, 8)));
+        const grain = std.sin(radius * 38 + std.sin(axial * 2) * 0.25);
+        const fiber = std.sin(radial.x * 95 + axial * 0.7);
+        return d.vec4f(lit(std.mul(ctx.parameters.color, 0.94 + grain * 0.045 + fiber * 0.015), ctx.worldNormal), 1);
     },
 });
 export const Stone = materialType({

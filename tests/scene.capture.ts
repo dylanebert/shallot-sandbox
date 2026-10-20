@@ -1,6 +1,6 @@
 import { expect, test } from "playwright/test";
 import { TIMEOUT } from "@dylanebert/shallot/testing";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir } from "node:fs/promises";
 
 // Manual look evidence, deliberately outside the ordinary browser claim set.
 test("room, hall haze on and off, and a held block", async ({ page }) => {
@@ -9,9 +9,11 @@ test("room, hall haze on and off, and a held block", async ({ page }) => {
     if (!directory) throw new Error("Set SHALLOT_CAPTURE_DIR for the manual look review");
     await mkdir(directory, { recursive: true });
     const save = async (name: string) => {
-        const png = await page.evaluate(() => window.sandbox.capture());
-        await writeFile(`${directory}/${name}.png`, Buffer.from(png, "base64"));
+        await page.evaluate(() => window.sandbox.capture());
+        await page.screenshot({ path: `${directory}/${name}.png` });
+        await page.locator("#captured-frame").evaluate(element => element.remove());
     };
+    await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto("/tests/stepped.html");
     await page.waitForFunction(() => !!window.sandbox);
     await save("room");

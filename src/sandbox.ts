@@ -46,7 +46,7 @@ export function box(world: World, at: V3, half: V3, mass = 0, rotation: Q = [0, 
     world.add(eid, Body, { type: mass ? BodyType.Dynamic : BodyType.Static });
     world.add(eid, Shape, { density: mass ? mass / (size[0] * size[1] * size[2]) : 1000, enableHitEvents: mass ? 1 : 0 });
     world.add(eid, MeshInstance);
-    world.add(eid, MeshMaterial, mass ? world.resource(Wood).add(Wood.defaults!) : world.resource(Grit).add(Grit.defaults!));
+    world.add(eid, MeshMaterial, mass ? world.resource(Wood).add({ ...Wood.defaults!, size }) : world.resource(Grit).add(Grit.defaults!));
     return eid;
 }
 export function pin(
@@ -134,8 +134,9 @@ export function bridge(world: World): number[] {
     return planks;
 }
 function lamp(world: World, z: number): number {
+    // Keep the source below the ceiling's inner face (y=4.9), not on its shadow boundary.
     const eid = world.create();
-    world.add(eid, Transform, { translation: [0, 4.9, z], scale: [0.3, 0.3, 0.3] });
+    world.add(eid, Transform, { translation: [0, 4.65, z], scale: [0.3, 0.3, 0.3] });
     world.add(eid, MeshInstance, {
         mesh: world.resource(Meshes).add({ name: "lamp", ...sphere() }),
     });
@@ -148,7 +149,9 @@ function lamp(world: World, z: number): number {
     world.add(eid, VolumetricLight);
     world.add(eid, PointLight, {
         color: 0xffd9a8,
-        intensity: 16000,
+        // Lumens, not the archive renderer's unitless intensity; the dark albedo needs this
+        // at the standard camera exposure. Ambient remains a small fill beside the pools.
+        intensity: 1200000,
         range: 24,
         radius: 0.15,
         shadowMapsEnabled: 1,
@@ -234,7 +237,7 @@ export function sandbox(world: World) {
     const stack = Array.from({ length: 5 }, (_, i) =>
         box(world, [0, 0.22 + i * 0.42, -15], [0.35, 0.2, 0.2], 2),
     );
-    world.resource(GlobalAmbientLight).brightness = 380;
+    world.resource(GlobalAmbientLight).brightness = 180;
     for (const z of [0, -14.5]) lamp(world, z);
     const eye = world.create();
     world.add(eye, Camera, { fov: 75, near: 0.05, far: 100, antialias: 0 });

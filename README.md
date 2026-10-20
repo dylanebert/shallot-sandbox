@@ -38,6 +38,6 @@ For manual look review, produce render-target PNGs with:
 SHALLOT_CAPTURE_DIR=/tmp/sandbox-captures bunx playwright test -c capture.config.ts
 ```
 
-The capture subject drives a built, stepped page; it refuses to run without an output directory. Room, hall with haze on/off, and held-block captures are evidence for a person, not visual goldens. Play `bun run dev` to judge motion and spatial sound.
+The capture subject drives a built, stepped page and overlays `captureFrame`’s rendered target beneath the HUD before taking each PNG; it refuses to run without an output directory. Room, hall with haze on/off, and held-block captures are evidence for a person, not visual goldens. Play `bun run dev` to judge motion and spatial sound.
 
 The Node tests step the game’s actual world, including its joints, player, and gravity gun. Browser checks cover the built page. Run `bunx playwright install chromium` once before browser checks. `bun run preview` serves a production build.

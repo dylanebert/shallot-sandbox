@@ -14,6 +14,7 @@ const app = await createApp({ plugins: [SandboxPlugin], setup(w) {
 const world = app.world;
 const entities = world.resource(SandboxState).entities!;
 const overlay = document.createElement("div");
+overlay.style.cssText = "position:absolute;inset:0;z-index:1;pointer-events:none";
 document.body.append(overlay);
 const clearHud = hud(overlay, world);
 world.onDispose(clearHud);
@@ -26,12 +27,15 @@ async function capture() {
     const pending = captureFrame(document.querySelector<HTMLCanvasElement>("#canvas")!);
     await world.step(0);
     const image = await pending;
-    // Lossless render-target bytes, not a CSS/page screenshot.
+    // Overlay the actual render target below the HUD before the page capture, as physics does.
     const canvas = document.createElement("canvas");
     canvas.width = image.width;
     canvas.height = image.height;
     canvas.getContext("2d")!.putImageData(new ImageData(new Uint8ClampedArray(image.rgba), image.width, image.height), 0, 0);
-    return canvas.toDataURL("image/png").split(",")[1];
+    canvas.id = "captured-frame";
+    canvas.style.cssText = "position:absolute;inset:0;width:1280px;height:720px;pointer-events:none";
+    document.querySelector("#captured-frame")?.remove();
+    document.querySelector("#canvas")!.after(canvas);
 }
 const driver = {
     capture,
