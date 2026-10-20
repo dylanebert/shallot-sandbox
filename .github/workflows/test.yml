@@ -70,7 +70,8 @@ jobs:
         run: bun test $(find ./src ./tests -name '*.node.ts' -print | sort)
       - name: node tier on WARP
         if: matrix.os == 'windows-latest'
-        run: node -e "const child = Bun.spawn([process.execPath, 'test', ...process.argv.slice(1)], { argv0: 'bun.exe', env: { ...process.env, PATH: process.env.SHALLOT_REAL_NODE_DIR + ';' + process.env.PATH }, stdin: 'inherit', stdout: 'inherit', stderr: 'inherit' }); child.exited.then((code) => process.exit(code));" -- $(find ./src ./tests -name '*.node.ts' -print | sort)
+        run: |
+          node -e "const child = Bun.spawn([process.execPath, 'test', ...process.argv.slice(1)], { argv0: 'bun.exe', env: { ...process.env, PATH: process.env.SHALLOT_REAL_NODE_DIR + ';' + process.env.PATH }, stdin: 'inherit', stdout: 'inherit', stderr: 'inherit' }); child.exited.then((code) => process.exit(code));" -- $(find ./src ./tests -name '*.node.ts' -print | sort)
 
   browser:
     runs-on: ${{ matrix.os }}
