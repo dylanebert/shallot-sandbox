@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="description" content="A first-person gravity gun playground with a block pyramid, hanging chains, and a sagging bridge." />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+        <title>Shallot Sandbox</title>
+        <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { background: #191816; overflow: hidden; }
+            canvas { display: block; width: 100vw; height: 100vh; }
+            .crosshair { position: fixed; left: 50%; top: 50%; color: white; transform: translate(-50%, -50%); pointer-events: none; font: 20px monospace; }
+        </style>
+    </head>
+    <body>
+        <canvas id="canvas"></canvas>
+        <span class="crosshair" aria-hidden="true">+</span>
+        <script type="module">
+            import { runApp } from "@dylanebert/shallot";
+            import { AppPlugin } from "./src/app";
+
+            await runApp({ plugins: [AppPlugin] });
+        </script>
+    </body>
+</html>
