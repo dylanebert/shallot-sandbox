@@ -25,6 +25,7 @@ import {
     StandardPhysicsPlugin,
 } from "@dylanebert/shallot/standard/physics";
 import { Player } from "./player";
+import { gunSound, GameAudioPlugin } from "./audio";
 
 const MAX_RANGE = 15;
 const HOLD_DISTANCE = 2;
@@ -98,6 +99,7 @@ const aim: System = {
             if (left || right) {
                 const body = gun.body;
                 release(world);
+                if (left) gunSound(world, "launch", [gun.origin.x, gun.origin.y, gun.origin.z]);
                 if (left)
                     setLinearVelocity(world, body, {
                         x: gun.direction[0] * LAUNCH_SPEED,
@@ -131,6 +133,7 @@ const aim: System = {
             if (hovered && left) {
                 const mass = getMassData(world, gun.hit.body)!;
                 const anchor = getLocalPoint(world, gun.hit.body, gun.hit.point)!;
+                gunSound(world, "grab", [gun.hit.point.x, gun.hit.point.y, gun.hit.point.z]);
                 gun.body = gun.hit.body;
                 gun.distance = gun.hit.fraction * MAX_RANGE;
                 gun.target = world.create();
@@ -169,7 +172,7 @@ const aim: System = {
 };
 export const GunPlugin: Plugin = {
     name: "Gun",
-    dependencies: [InputPlugin, OutlinePlugin],
+    dependencies: [InputPlugin, OutlinePlugin, GameAudioPlugin],
     systems: [sample, aim],
     recovery: (world) => ({
         snapshot: () => structuredClone(world.resource(Gun)),

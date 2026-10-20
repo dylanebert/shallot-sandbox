@@ -15,12 +15,18 @@
     </head>
     <body>
         <canvas id="canvas"></canvas>
-        <span class="crosshair" aria-hidden="true">+</span>
         <script type="module">
             import { runApp } from "@dylanebert/shallot";
             import { AppPlugin } from "./src/app";
+            import { hud } from "./src/hud";
 
-            await runApp({ plugins: [AppPlugin] });
+            import { AtmosphereSettings } from "./src/atmosphere";
+
+            const touchOnly = navigator.maxTouchPoints > 0 && !matchMedia("(any-pointer: fine)").matches;
+            await runApp({
+                plugins: [AppPlugin], ui: hud,
+                setup(world) { world.resource(AtmosphereSettings).touchOnly = touchOnly; },
+            });
         </script>
     </body>
 </html>

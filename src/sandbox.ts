@@ -2,6 +2,12 @@ import {
     Body,
     BodyType,
     Camera,
+    ColorGrading,
+    DebandDither,
+    Listener,
+    Resolution,
+    Tonemapping,
+    VolumetricLight,
     Character,
     CharacterPlugin,
     GlobalAmbientLight,
@@ -26,6 +32,10 @@ import {
 } from "@dylanebert/shallot";
 import { LocalPlayer, Player, PlayerPlugin } from "./player";
 import { GunPlugin } from "./gun";
+import { Grit, Wood, Stone, SurfacePlugins } from "./materials";
+import { GameAudioPlugin } from "./audio";
+import { AtmospherePlugin } from "./atmosphere";
+import { Vignette, VignettePlugin } from "@dylanebert/shallot/extras";
 
 type V3 = readonly [number, number, number];
 type Q = readonly [number, number, number, number];
@@ -34,9 +44,9 @@ export function box(world: World, at: V3, half: V3, mass = 0, rotation: Q = [0, 
     const size = half.map((v) => 2 * v) as [number, number, number];
     world.add(eid, Transform, { translation: at, scale: size, rotation });
     world.add(eid, Body, { type: mass ? BodyType.Dynamic : BodyType.Static });
-    world.add(eid, Shape, { density: mass ? mass / (size[0] * size[1] * size[2]) : 1000 });
+    world.add(eid, Shape, { density: mass ? mass / (size[0] * size[1] * size[2]) : 1000, enableHitEvents: mass ? 1 : 0 });
     world.add(eid, MeshInstance);
-    world.add(eid, MeshMaterial, world.resource(Materials).add(StandardMaterial()));
+    world.add(eid, MeshMaterial, mass ? world.resource(Wood).add(Wood.defaults!) : world.resource(Grit).add(Grit.defaults!));
     return eid;
 }
 export function pin(
@@ -78,7 +88,7 @@ export function chain(world: World, x: number, weighted: boolean) {
         world.add(weight, MeshInstance, {
             mesh: world.resource(Meshes).add({ name: "weight", ...sphere() }),
         });
-        world.add(weight, MeshMaterial, world.resource(Materials).add(StandardMaterial()));
+        world.add(weight, MeshMaterial, world.resource(Stone).add(Stone.defaults!));
         pin(world, previous, weight, [0, -0.105, 0], [0, 0.4, 0]);
     }
     return { mount, links, weight };
@@ -132,14 +142,15 @@ function lamp(world: World, z: number): number {
     world.add(
         eid,
         MeshMaterial,
-        world.resource(Materials).add(StandardMaterial({ emissive: [1, 0.85, 0.62] })),
+        world.resource(Materials).add(StandardMaterial({ baseColor: [1, 0.85, 0.62, 1], unlit: true })),
     );
     world.add(eid, NotShadowCaster);
+    world.add(eid, VolumetricLight);
     world.add(eid, PointLight, {
         color: 0xffd9a8,
-        intensity: 980,
+        intensity: 16000,
         range: 24,
-        radius: 4,
+        radius: 0.15,
         shadowMapsEnabled: 1,
     });
     return eid;
@@ -226,7 +237,17 @@ export function sandbox(world: World) {
     world.resource(GlobalAmbientLight).brightness = 380;
     for (const z of [0, -14.5]) lamp(world, z);
     const eye = world.create();
-    world.add(eye, Camera, { fov: 75, near: 0.05, far: 100 });
+    world.add(eye, Camera, { fov: 75, near: 0.05, far: 100, antialias: 0 });
+    world.add(eye, Resolution, { height: 360 });
+    world.add(eye, Listener);
+    world.add(eye, Tonemapping);
+    world.add(eye, DebandDither);
+    world.add(eye, ColorGrading, {
+        postSaturation: 0.92,
+        contrast: [1.04, 1.02, 1],
+        exposure: 0.25,
+    });
+    world.add(eye, Vignette, { intensity: 0.15 });
     world.add(eye, StandardRenderer);
     world.add(eye, Transform, { translation: [0, 1.6, 3] });
     const player = world.create();
@@ -249,7 +270,8 @@ export const SandboxState: Resource<{ entities: ReturnType<typeof sandbox> | nul
 };
 export const SandboxPlugin: Plugin = {
     name: "Sandbox",
-    dependencies: [PlayerPlugin, CharacterPlugin, StandardPhysicsPlugin, MeshPlugin, GunPlugin],
+    dependencies: [PlayerPlugin, CharacterPlugin, StandardPhysicsPlugin, MeshPlugin, GunPlugin,
+        ...SurfacePlugins, GameAudioPlugin, AtmospherePlugin, VignettePlugin],
     initialize(world) {
         world.resource(SandboxState).entities = sandbox(world);
     },
