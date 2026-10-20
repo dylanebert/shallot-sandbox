@@ -1,0 +1,2 @@
+stage: 1
+finding: src/plugins.test.ts:6-18 is born green: it recursively installs every dependency before asserting that none is missing. The assertion passes with APP_PLUGINS empty and with a synthetic broken-game plugin requiring a not-installed dependency (independently reproduced). It cannot protect the sandbox composition and violates the requirement that retained scaffold checks hold a falsifiable game claim. Remove it or replace it with a game-specific composition assertion that fails when the sandbox is absent or incorrectly selected.
