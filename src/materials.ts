@@ -1,9 +1,10 @@
-import { cube, Meshes, type Resource, type World } from "@dylanebert/shallot";
+import { Meshes, type Resource, type World } from "@dylanebert/shallot";
 import { MaterialPlugin, extendedMaterial, Materials, applyPbrLighting, pbrInputFromStandardMaterial, StandardMaterial } from "@dylanebert/shallot/standard/rendering";
 import tgpu from "typegpu";
 import * as d from "typegpu/data";
 import * as std from "typegpu/std";
 import { posterizeLightness, POSTERIZATION_LEVELS } from "./posterize";
+import { timberGeometry } from "./timber";
 
 export function linearHex(hex: number): [number, number, number, number] {
     const linear = (v: number) => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
@@ -49,11 +50,14 @@ export const Wood = extendedMaterial(Materials, {
     name: "Wood",
     fragment: ctx => {
         "use gpu";
-        // Authored timber UVs are metres: x crosses the grain; y follows the longest axis.
-        const grain = std.sin(ctx.uv.x * 38 + std.sin(ctx.uv.y * 2) * .25);
-        const fiber = std.sin(ctx.uv.x * 95 + ctx.uv.y * .7);
+        // Each face is a near-flat wood patch, with y following its long axis.
+        const grain = std.sin(ctx.uv.x * 6 + std.sin(ctx.uv.y * 1.5) * .1);
+        const edge = std.min(std.min(ctx.uv.x, 1 - ctx.uv.x), std.min(ctx.uv.y, 1 - ctx.uv.y));
+        // A narrow dark edge keeps separate timbers legible when their physical
+        // .01 m gaps fall between nearest-sampled pixels at 360 lines.
+        const seam = .55 + .45 * std.smoothstep(0, .035, edge);
         const surface = pbrInputFromStandardMaterial(ctx);
-        surface.baseColor = d.vec4f(std.mul(surface.baseColor.rgb, .94 + grain * .045 + fiber * .015), surface.baseColor.a);
+        surface.baseColor = d.vec4f(std.mul(surface.baseColor.rgb, seam * (.98 + grain * .002)), surface.baseColor.a);
         const color = applyPbrLighting(surface);
         return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS), color.a);
     },
@@ -72,19 +76,13 @@ export const Stone = extendedMaterial(Materials, {
 export const SurfacePlugins = [MaterialPlugin(Grit), MaterialPlugin(Wood), MaterialPlugin(Stone)];
 
 const TimberMeshes: Resource<Map<string, number>> = { create: () => new Map() };
-/** Metre-space near-parallel rings authored as UVs, so standard-derived materials need no private transform binding. */
+/** Authored face UVs keep the standard-derived shader independent of renderer transform bindings. */
 export function timberMesh(world: World, size: readonly number[]): number {
     const cache = world.resource(TimberMeshes);
     const key = size.join(",");
     const existing = cache.get(key);
     if (existing !== undefined) return existing;
-    const mesh = cube();
-    const axis = size[1] > size[0] && size[1] >= size[2] ? 1 : size[2] > size[0] && size[2] > size[1] ? 2 : 0;
-    const a = (axis + 1) % 3, b = (axis + 2) % 3;
-    for (let i = 0; i < mesh.vertices.length; i += 8) {
-        mesh.vertices[i + 6] = mesh.vertices[i + a] * size[a] * .35 + mesh.vertices[i + b] * size[b] * .94;
-        mesh.vertices[i + 7] = mesh.vertices[i + axis] * size[axis];
-    }
+    const mesh = timberGeometry(size);
     const id = world.resource(Meshes).add({ name: `timber-${key}`, ...mesh });
     cache.set(key, id);
     return id;
