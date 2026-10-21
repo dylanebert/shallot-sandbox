@@ -1,6 +1,5 @@
-import { createApp, pointerLockChanged, pressButton, releaseButton, pressKey, releaseKey } from "@dylanebert/shallot";
+import { createApp, pointerLockChanged, pressButton, releaseButton } from "@dylanebert/shallot";
 import { setTransform, PhysicsWorldDefinition } from "@dylanebert/shallot/standard/physics";
-import { AtmosphereSettings } from "../src/atmosphere";
 import { SandboxPlugin, SandboxState } from "../src/sandbox";
 import { Gun } from "../src/gun";
 import { LocalPlayer, PlayerInput } from "../src/player";
@@ -8,7 +7,6 @@ import { hud } from "../src/hud";
 import { captureFrame } from "@dylanebert/shallot/rendering";
 
 const app = await createApp({ plugins: [SandboxPlugin], setup(w) {
-    w.resource(AtmosphereSettings).touchOnly = false;
     w.resource(PhysicsWorldDefinition).workerCount = 1;
 } });
 const world = app.world;
@@ -42,10 +40,6 @@ const driver = {
     async hall() {
         setTransform(world, entities.player, [0, .95, -8], [0, 0, 0, 1]);
         for (let i = 0; i < 3; i++) await frame();
-    },
-    async toggleFog() {
-        pressKey(world, "KeyG"); await frame();
-        releaseKey(world, "KeyG"); await frame();
     },
     async hold() {
         world.storage(PlayerInput).pitch.set(entities.player, -.1);

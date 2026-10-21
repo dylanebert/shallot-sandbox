@@ -28,8 +28,7 @@ const noise = tgpu.fn([d.vec3f], d.f32)((p) => {
         std.mix(std.mix(hash(std.add(i,d.vec3f(0,0,1))),hash(std.add(i,d.vec3f(1,0,1))),u.x),std.mix(hash(std.add(i,d.vec3f(0,1,1))),hash(std.add(i,d.vec3f(1,1,1))),u.x),u.y), u.z);
 });
 
-// Like scream-jam, quantization is after applyPbrLighting and before the renderer
-// applies fog; atmosphere is never quantized.
+// Like scream-jam, quantization follows applyPbrLighting.
 export const Architecture = extendedMaterial(Materials, {
     name: "Architecture",
     fragment: ctx => {

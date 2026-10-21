@@ -1,5 +1,5 @@
 import { expect, setDefaultTimeout, test } from "bun:test";
-import { MeshInstance, MeshMaterial, PointLight, Transform, pressKey, releaseKey } from "@dylanebert/shallot";
+import { MeshInstance, MeshMaterial, PointLight, Transform } from "@dylanebert/shallot";
 import { attachTexture, captureTexture } from "@dylanebert/shallot/rendering";
 import { PhysicsWorldDefinition } from "@dylanebert/shallot/standard/physics";
 import { TIMEOUT } from "@dylanebert/shallot/testing";
@@ -11,7 +11,7 @@ import { Wood } from "./materials";
 setDefaultTimeout(TIMEOUT.node);
 await setupGlobals();
 
-test("the hall's lamps light surfaces, cast shadows, and brighten air around the lamp only with fog", async () => {
+test("the hall's lamps light surfaces and cast shadows", async () => {
     const app = await openGpuApp({ plugins: [SandboxPlugin], setup(w) {
         w.resource(PhysicsWorldDefinition).workerCount = 1;
     } });
@@ -42,22 +42,14 @@ test("the hall's lamps light surfaces, cast shadows, and brighten air around the
             }
             return sum / ((x1 - x0) * (y1 - y0));
         };
-        const fogOn = await read();
-        pressKey(w, "KeyG"); w.step(0);
-        releaseKey(w, "KeyG"); w.step(0);
-        const fogOff = await read();
-        const haloOn = mean(fogOn, 280, 95, 360, 130);
-        const haloOff = mean(fogOff, 280, 95, 360, 130);
-        console.info({ haloOn, haloOff });
-        // At least 15 display-code levels: a visible halo, not merely nonzero fog math.
-        expect(haloOn).toBeGreaterThan(haloOff + 15);
+        const shadowed = await read();
         const lights = [...w.query([PointLight])];
         for (const light of lights) w.storage(PointLight).shadowMapsEnabled.set(light, 0);
         const unshadowed = await read();
         // Same geometry, pose and lighting: removing shadow maps must brighten cast-shadow pixels.
         let shadowPixels = 0;
-        for (let i = 0; i < fogOff.length; i += 4)
-            if (unshadowed[i] > fogOff[i] + 25) shadowPixels++;
+        for (let i = 0; i < shadowed.length; i += 4)
+            if (unshadowed[i] > shadowed[i] + 25) shadowPixels++;
         expect(shadowPixels).toBeGreaterThan(100);
         for (const light of lights) w.storage(PointLight).intensity.set(light, 0);
         const ambientOnly = await read();

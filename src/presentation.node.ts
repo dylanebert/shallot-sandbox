@@ -1,25 +1,18 @@
 import { expect, test, setDefaultTimeout } from "bun:test";
-import { Body, BodyType, Shape, Sound, pressKey, releaseKey, Transform } from "@dylanebert/shallot";
-import { Fog } from "@dylanebert/shallot/extras";
+import { Body, BodyType, Shape, Sound, Transform } from "@dylanebert/shallot";
 import { PhysicsEvents, PhysicsWorldDefinition } from "@dylanebert/shallot/standard/physics";
 import { TIMEOUT } from "@dylanebert/shallot/testing";
 import { openGpuApp } from "@dylanebert/shallot/testing/gpu";
 import { setupGlobals } from "@dylanebert/shallot/webgpu";
 import { SandboxPlugin } from "./sandbox";
-import { AtmosphereSettings } from "./atmosphere";
 import { GameAudioPlugin, GameClips, IMPACT_SPEED, ImpactSystem } from "./audio";
 setDefaultTimeout(TIMEOUT.node);
 await setupGlobals();
-async function game(touchOnly = false) {
+test("stepped contact hits play at their point only above the approach-speed threshold", async () => {
     const app = await openGpuApp({ plugins: [SandboxPlugin], setup(w) {
-        w.resource(AtmosphereSettings).touchOnly = touchOnly;
         w.resource(PhysicsWorldDefinition).workerCount = 1;
     } });
     console.info("presentation adapter:", app.world.gpuIfAvailable!.adapter);
-    return app;
-}
-test("stepped contact hits play at their point only above the approach-speed threshold; G toggles fog", async () => {
-    const app = await game();
     const w = app.world;
     try {
         // Step real physics first, then exercise the event consumer with deterministic boundary records.
@@ -40,13 +33,6 @@ test("stepped contact hits play at their point only above the approach-speed thr
         expect(w.storage(Sound).clip.get(sounds[0])).toBe(w.resource(GameClips).impact);
         const t = w.storage(Transform).translation;
         expect([t.x.get(sounds[0]), t.y.get(sounds[0]), t.z.get(sounds[0])]).toEqual([1, 2, -3]);
-        expect([...w.query([Fog])]).toHaveLength(1);
-        pressKey(w, "KeyG");
-        w.step(1 / 60);
-        expect([...w.query([Fog])]).toHaveLength(0);
-        releaseKey(w, "KeyG"); w.step(1 / 60);
-        pressKey(w, "KeyG"); w.step(1 / 60);
-        expect([...w.query([Fog])]).toHaveLength(1);
     } finally { app.dispose(); }
 });
 for (const speed of [1.2, 3]) test(`a real ${speed} m/s contact ${speed > IMPACT_SPEED ? "plays" : "does not play"} at the hit point`, async () => {
@@ -82,13 +68,5 @@ for (const speed of [1.2, 3]) test(`a real ${speed} m/s contact ${speed > IMPACT
             break;
         }
         expect(observed).toBe(true);
-    } finally { app.dispose(); }
-});
-test("touch-only startup leaves fog off; G can enable it", async () => {
-    const app = await game(true);
-    try {
-        expect([...app.world.query([Fog])]).toHaveLength(0);
-        pressKey(app.world, "KeyG"); app.world.step(1 / 60);
-        expect([...app.world.query([Fog])]).toHaveLength(1);
     } finally { app.dispose(); }
 });

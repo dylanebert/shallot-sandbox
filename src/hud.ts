@@ -15,7 +15,7 @@ export function hud(container: HTMLElement, world: World): () => void {
         crosshair.dataset.mode = mode;
         crosshair.textContent = mode === "hold" ? "⊙" : mode === "hover" ? "○" : "+";
         crosshair.style.color = mode === "hold" ? "#e4ad73" : mode === "hover" ? "#b4cfdf" : "#eee";
-        prompts.innerText = (mode === "hold" ? "LMB · Launch\nRMB · Drop\n" : mode === "hover" ? "LMB · Grab\n" : "") + "G · Haze";
+        prompts.innerText = mode === "hold" ? "LMB · Launch\nRMB · Drop" : mode === "hover" ? "LMB · Grab" : "";
     };
     const read: System = { name: "SandboxHud/Read", group: "draw", update };
     world.addSystem(read);

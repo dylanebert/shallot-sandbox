@@ -8,7 +8,6 @@ import {
     Resolution,
     Tonemapping,
     TonemappingMethod,
-    VolumetricLight,
     Character,
     CharacterPlugin,
     GlobalAmbientLight,
@@ -35,7 +34,6 @@ import { LocalPlayer, Player, PlayerPlugin } from "./player";
 import { GunPlugin } from "./gun";
 import { Architecture, Wood, Stone, SurfacePlugins, ArchitecturePaint, WoodPaint, StonePaint, linearHex } from "./materials";
 import { GameAudioPlugin } from "./audio";
-import { AtmospherePlugin } from "./atmosphere";
 import { Vignette, VignettePlugin } from "@dylanebert/shallot/extras";
 
 type V3 = readonly [number, number, number];
@@ -151,7 +149,6 @@ function lamp(world: World, z: number): number {
         world.resource(Materials).add(StandardMaterial({ baseColor: [1, 0.85, 0.62, 1], unlit: true })),
     );
     world.add(eid, NotShadowCaster);
-    world.add(eid, VolumetricLight);
     world.add(eid, PointLight, {
         color: 0xffd9a8,
         // At EV100 9.7, an unwrapped 78 maps to ~3.07M lm (4π² / exposure).
@@ -289,7 +286,7 @@ export const SandboxState: Resource<{ entities: ReturnType<typeof sandbox> | nul
 export const SandboxPlugin: Plugin = {
     name: "Sandbox",
     dependencies: [PlayerPlugin, CharacterPlugin, StandardPhysicsPlugin, MeshPlugin, GunPlugin,
-        ...SurfacePlugins, GameAudioPlugin, AtmospherePlugin, VignettePlugin],
+        ...SurfacePlugins, GameAudioPlugin, VignettePlugin],
     initialize(world) {
         world.resource(SandboxState).entities = sandbox(world);
     },

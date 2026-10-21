@@ -20,13 +20,7 @@
             import { AppPlugin } from "./src/app";
             import { hud } from "./src/hud";
 
-            import { AtmosphereSettings } from "./src/atmosphere";
-
-            const touchOnly = navigator.maxTouchPoints > 0 && !matchMedia("(any-pointer: fine)").matches;
-            await runApp({
-                plugins: [AppPlugin], ui: hud,
-                setup(world) { world.resource(AtmosphereSettings).touchOnly = touchOnly; },
-            });
+            await runApp({ plugins: [AppPlugin], ui: hud });
         </script>
     </body>
 </html>

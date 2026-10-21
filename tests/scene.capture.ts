@@ -3,7 +3,7 @@ import { TIMEOUT } from "@dylanebert/shallot/testing";
 import { mkdir } from "node:fs/promises";
 
 // Manual look evidence, deliberately outside the ordinary browser claim set.
-test("room, hall and held block with desktop haze and archive-matched clear views", async ({ page }) => {
+test("room, hall and held block", async ({ page }) => {
     test.setTimeout(TIMEOUT.browser);
     const directory = process.env.SHALLOT_CAPTURE_DIR;
     if (!directory) throw new Error("Set SHALLOT_CAPTURE_DIR for the manual look review");
@@ -17,17 +17,10 @@ test("room, hall and held block with desktop haze and archive-matched clear view
     await page.goto("/tests/stepped.html");
     await page.waitForFunction(() => !!window.sandbox);
     await save("room");
-    await page.evaluate(() => window.sandbox.toggleFog());
-    await save("room-fog-off");
-    await page.evaluate(() => window.sandbox.toggleFog());
     await page.evaluate(() => window.sandbox.hall());
-    await save("hall-fog-on");
-    await page.evaluate(() => window.sandbox.toggleFog());
-    await save("hall-fog-off");
+    await save("hall");
     await page.reload();
     await page.waitForFunction(() => !!window.sandbox);
     expect(await page.evaluate(() => window.sandbox.hold())).toBe(true);
     await save("held-block");
-    await page.evaluate(() => window.sandbox.toggleFog());
-    await save("held-block-fog-off");
 });

@@ -3,7 +3,7 @@ import * as d from "typegpu/data";
 
 export const POSTERIZATION_LEVELS = 10;
 // Linear sRGB <-> OKLab, Björn Ottosson's 2021 matrices (MIT/public domain).
-// Same material-stage operation as scream-jam: lighting first, banding next, smooth fog later.
+// Same material-stage operation as scream-jam: lighting first, banding next.
 // Archive Glaze composite.ts: row-major Bayer rank / 16 - .5, one band wide.
 // Pixel centres come directly from the view's 360-line render target, not CSS pixels.
 export const posterizeLightness = tgpu.fn([d.vec3f, d.f32, d.vec2f], d.vec3f)(`(rgb: vec3f, levels: f32, pixel: vec2f) -> vec3f {
