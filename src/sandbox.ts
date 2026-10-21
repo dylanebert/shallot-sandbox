@@ -33,7 +33,7 @@ import {
 } from "@dylanebert/shallot";
 import { LocalPlayer, Player, PlayerPlugin } from "./player";
 import { GunPlugin } from "./gun";
-import { Grit, Wood, Stone, SurfacePlugins, GritPaint, WoodPaint, StonePaint, linearHex } from "./materials";
+import { Architecture, Wood, Stone, SurfacePlugins, ArchitecturePaint, WoodPaint, StonePaint, linearHex } from "./materials";
 import { GameAudioPlugin } from "./audio";
 import { AtmospherePlugin } from "./atmosphere";
 import { Vignette, VignettePlugin } from "@dylanebert/shallot/extras";
@@ -47,7 +47,7 @@ export function box(world: World, at: V3, half: V3, mass = 0, rotation: Q = [0, 
     world.add(eid, Body, { type: mass ? BodyType.Dynamic : BodyType.Static });
     world.add(eid, Shape, { density: mass ? mass / (size[0] * size[1] * size[2]) : 1000, enableHitEvents: mass ? 1 : 0 });
     world.add(eid, MeshInstance);
-    world.add(eid, MeshMaterial, wood ? world.resource(Wood).add({ baseColor: WoodPaint.baseColor, size }) : world.resource(Grit).add(GritPaint));
+    world.add(eid, MeshMaterial, wood ? world.resource(Wood).add({ baseColor: WoodPaint.baseColor, size }) : world.resource(Architecture).add(ArchitecturePaint));
     return eid;
 }
 export function pin(
@@ -236,7 +236,7 @@ export function sandbox(world: World) {
     for (const [index, [at, half]] of architecture.entries()) {
         const eid = box(world, at, half);
         const hex = index === 1 || index === 11 ? 0x4c4b49 : index === 14 ? 0x1e1d1b : [0, 12, 13, 15].includes(index) ? 0x2b2928 : 0x393836;
-        world.resource(Grit).update(world.storage(MeshMaterial).material.get(eid), { baseColor: linearHex(hex) });
+        world.resource(Architecture).update(world.storage(MeshMaterial).material.get(eid), { baseColor: linearHex(hex) });
     }
     const pyramid: number[] = [];
     for (let row = 0; row < 10; row++)

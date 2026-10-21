@@ -8,9 +8,10 @@ export function linearHex(hex: number): [number, number, number, number] {
     const linear = (v: number) => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4;
     return [linear((hex >> 16 & 255) / 255), linear((hex >> 8 & 255) / 255), linear((hex & 255) / 255), 1];
 }
-export const GritPaint = StandardMaterial({ baseColor: linearHex(0x393836), perceptualRoughness: 1 });
+export const ArchitecturePaint = StandardMaterial({ baseColor: linearHex(0x393836), perceptualRoughness: 1 });
 export const WoodPaint = StandardMaterial({ baseColor: linearHex(0x5a4e3c), perceptualRoughness: 1 });
 export const StonePaint = StandardMaterial({ baseColor: linearHex(0x575149), perceptualRoughness: 1 });
+// Stone's procedural veins still use value noise; architecture does not.
 const hash = tgpu.fn([d.vec3f], d.f32)((p) => {
     "use gpu";
     const q = std.fract(std.mul(p, .1031));
@@ -29,18 +30,11 @@ const noise = tgpu.fn([d.vec3f], d.f32)((p) => {
 
 // Like scream-jam, quantization is after applyPbrLighting and before the renderer
 // applies fog; atmosphere is never quantized.
-export const Grit = extendedMaterial(Materials, {
-    name: "Grit",
+export const Architecture = extendedMaterial(Materials, {
+    name: "Architecture",
     fragment: ctx => {
         "use gpu";
-        const p = ctx.world;
-        const broad = noise(std.mul(p, 2.1));
-        const medium = noise(std.mul(p, 8));
-        const tooth = noise(std.mul(p, 40));
-        const shade = .965 + (broad - .5) * .24 + (medium - .5) * .45 + (tooth - .5) * .2;
-        const surface = pbrInputFromStandardMaterial(ctx);
-        surface.baseColor = d.vec4f(std.mul(surface.baseColor.rgb, shade), surface.baseColor.a);
-        const color = applyPbrLighting(surface);
+        const color = applyPbrLighting(pbrInputFromStandardMaterial(ctx));
         return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS, ctx.fragCoord.xy), color.a);
     },
 });
@@ -90,4 +84,4 @@ export const Stone = extendedMaterial(Materials, {
         return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS, ctx.fragCoord.xy), color.a);
     },
 });
-export const SurfacePlugins = [MaterialPlugin(Grit), MaterialPlugin(Wood), MaterialPlugin(Stone)];
+export const SurfacePlugins = [MaterialPlugin(Architecture), MaterialPlugin(Wood), MaterialPlugin(Stone)];
