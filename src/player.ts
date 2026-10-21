@@ -341,9 +341,10 @@ export const DrivePlayerSystem: System = {
             const yaw = inputs.yaw.column[eid];
             players.yaw.set(eid, yaw);
             players.pitch.set(eid, inputs.pitch.column[eid]);
-            let vx = characters.velocity.column[eid * 4] - motion.carry.column[eid * 4];
+            // Collision clipping resolves placement, not the player's locomotion momentum.
+            let vx = motion.horizontal.column[eid * 2];
             let vy = characters.velocity.column[eid * 4 + 1] - motion.carry.column[eid * 4 + 1];
-            let vz = characters.velocity.column[eid * 4 + 2] - motion.carry.column[eid * 4 + 2];
+            let vz = motion.horizontal.column[eid * 2 + 1];
             const speed = Math.sqrt(vx * vx + vy * vy + vz * vz);
             if (speed < 0.01) {
                 vx = 0;
@@ -379,6 +380,7 @@ export const DrivePlayerSystem: System = {
                 buffer = 0;
             }
             vy -= players.gravity.column[eid] * dt;
+            motion.horizontal.set(eid, vx, vz);
             const gx = grounded ? characters.groundVelocity.column[eid * 4] : 0;
             const gy = grounded ? characters.groundVelocity.column[eid * 4 + 1] : 0;
             const gz = grounded ? characters.groundVelocity.column[eid * 4 + 2] : 0;
