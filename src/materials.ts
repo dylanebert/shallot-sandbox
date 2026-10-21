@@ -37,11 +37,11 @@ export const Grit = extendedMaterial(Materials, {
         const broad = noise(std.mul(p, 2.1));
         const medium = noise(std.mul(p, 8));
         const tooth = noise(std.mul(p, 40));
-        const shade = .72 + broad * .24 + medium * .15 + tooth * .1;
+        const shade = .965 + (broad - .5) * .24 + (medium - .5) * .45 + (tooth - .5) * .2;
         const surface = pbrInputFromStandardMaterial(ctx);
         surface.baseColor = d.vec4f(std.mul(surface.baseColor.rgb, shade), surface.baseColor.a);
         const color = applyPbrLighting(surface);
-        return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS), color.a);
+        return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS, ctx.fragCoord.xy), color.a);
     },
 });
 const WoodParameters = d.struct({ baseColor: d.vec4f, size: d.vec3f });
@@ -76,7 +76,7 @@ export const Wood = materialType({
         surface.perceptualRoughness = 1;
         surface.baseColor = d.vec4f(std.mul(ctx.parameters.baseColor.rgb, seam * (.98 + grain * .002)), ctx.parameters.baseColor.a);
         const color = applyPbrLighting(surface);
-        return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS), color.a);
+        return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS, ctx.fragCoord.xy), color.a);
     },
 });
 export const Stone = extendedMaterial(Materials, {
@@ -87,7 +87,7 @@ export const Stone = extendedMaterial(Materials, {
         const surface = pbrInputFromStandardMaterial(ctx);
         surface.baseColor = d.vec4f(std.mul(surface.baseColor.rgb, .7 + vein * .4), surface.baseColor.a);
         const color = applyPbrLighting(surface);
-        return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS), color.a);
+        return d.vec4f(posterizeLightness(color.rgb, POSTERIZATION_LEVELS, ctx.fragCoord.xy), color.a);
     },
 });
 export const SurfacePlugins = [MaterialPlugin(Grit), MaterialPlugin(Wood), MaterialPlugin(Stone)];

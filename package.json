@@ -9,7 +9,7 @@
         "preview": "vite preview --host 127.0.0.1"
     },
     "dependencies": {
-        "@dylanebert/shallot": "0.10.1-next.4"
+        "@dylanebert/shallot": "0.10.1-next.6"
     },
     "devDependencies": {
         "@types/bun": "^1.4.3",

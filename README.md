@@ -18,7 +18,7 @@ Open the URL Vite prints. Click the game to capture the mouse; Escape releases i
 
 The pyramid obstructs the doorway: clear yourself a passage with the gun. The pit has a step back out near its room-side edge.
 
-Procedural grit, wood and stone sit under two shadow-casting lamps. The frame is point-sampled at 360 lines, warm-graded and lightly vignetted. Surface materials quantize lit OKLab lightness to ten bands before smooth fog. Camera debanding is disabled so it does not fight those bands. Ordered Bayer dither awaits a published engine with material fragment pixel coordinates; its pending GPU claim is recorded as a TODO. The crosshair changes from cross to hover ring to held dot, with contextual mouse prompts.
+Procedural grit, wood and stone sit under two shadow-casting lamps. The frame is point-sampled at 360 lines, warm-graded and lightly vignetted. Surface materials quantize lit OKLab lightness to ten bands before smooth fog. Camera debanding is disabled so it does not fight those bands. Ordered Bayer dither breaks up the bands at the render target's pixel resolution. The crosshair changes from cross to hover ring to held dot, with contextual mouse prompts.
 
 Impact, grab and launch sounds are modal tones synthesized into PCM at startup and registered as clips, following Shallot’s sound example. Impacts above 1.5 m/s play at their contact point; grab plays at the hit and launch at the camera. The camera carries the spatial listener. No audio files or external recordings are used. Click the page to enable browser audio.
 
