@@ -41,3 +41,25 @@ SHALLOT_CAPTURE_DIR=/tmp/sandbox-captures bunx playwright test -c capture.config
 The capture subject drives a built, stepped page and overlays `captureFrame`’s rendered target beneath the HUD before taking each PNG; it refuses to run without an output directory. Room, hall and held-block captures are evidence for a person, not visual goldens. Play `bun run dev` to judge motion and spatial sound.
 
 The Node tests step the game’s actual world, including its joints, player, and gravity gun. Browser checks cover the built page. Run `bunx playwright install chromium` once before browser checks. `bun run preview` serves a production build.
+
+## Publishing
+
+The existing [itch.io page](https://individualkex.itch.io/shallot-sandbox) uses `web`, `windows`, `mac` and `linux` Butler channels. Build from a directory named `shallot-sandbox`: the native CLI names the executable after its directory. These build commands do not launch the game.
+
+```sh
+bun install --frozen-lockfile
+bun run build
+butler push dist individualkex/shallot-sandbox:web
+```
+
+Desktop uploads bundle CEF with `--portable`. For Linux:
+
+```sh
+bunx shallot build --target linux --portable --release
+patchelf --set-rpath '$ORIGIN/cef' build/linux/release-portable/shallot-sandbox
+butler push build/linux/release-portable individualkex/shallot-sandbox:linux
+```
+
+The 0.10.1 Linux prebuilt shell lacks a runtime library path; without the patch, direct launch fails to find its bundled `libcef.so`. For Windows and Mac, substitute `windows` or `mac` in the build and upload commands and omit `patchelf`. Build Linux on Linux and Mac on macOS; `bunx shallot build --help` lists source-build requirements when a prebuilt shell is unavailable.
+
+The Mac upload is Apple Silicon and ad-hoc signed, not notarized; Gatekeeper can block downloaded copies. The web upload needs “This file will be played in the browser” and “SharedArrayBuffer support” enabled in itch.io’s page settings.
